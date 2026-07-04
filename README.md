@@ -1,4 +1,4 @@
-# fastapi_template
+# fastapi-template
 
 Template de API REST con **FastAPI** (async-first), listo para desplegar en
 **Google Cloud Run**. Expone un CRUD simple de **Usuarios** como punto de
@@ -125,10 +125,10 @@ uv run ruff check .
 
 ```bash
 # Build
-docker build -t fastapi_template .
+docker build -t fastapi-template .
 
 # Run (mapea el puerto y pasa las variables de entorno)
-docker run --rm -p 8080:8080 --env-file .env fastapi_template
+docker run --rm -p 8080:8080 --env-file .env fastapi-template
 ```
 
 El `Dockerfile` es multi-stage con uv: un *builder* que crea el `.venv` con
@@ -139,11 +139,11 @@ Escucha en `0.0.0.0:$PORT` (default 8080).
 
 ```bash
 # Build + deploy directo desde el fuente
-gcloud run deploy fastapi_template \
+gcloud run deploy fastapi-template \
   --source . \
   --region europe-west1 \
   --allow-unauthenticated \
-  --set-env-vars APP_NAME=fastapi_template,DB_NAME=buholegal,DB_USERNAME=buholegal \
+  --set-env-vars APP_NAME=fastapi-template,DB_NAME=buholegal,DB_USERNAME=buholegal \
   --set-secrets DB_PASSWORD=db-password:latest \
   --add-cloudsql-instances PROJECT:REGION:INSTANCE
 ```

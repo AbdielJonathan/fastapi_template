@@ -11,6 +11,42 @@ y el entorno virtual, en lugar de `pip` + `requirements.txt`. La diferencia clav
 
 No necesitas activar el `.venv`: los comandos se corren con `uv run ...`.
 
+## Crear y activar el entorno virtual (paso a paso)
+
+`uv` puede gestionar el entorno por ti (`uv run` / `uv sync` crean y usan el
+`.venv` automáticamente), pero si prefieres el flujo clásico de crear y activar
+el venv a mano, aquí lo tienes de principio a fin.
+
+```bash
+# 1. Crear el entorno virtual (crea la carpeta .venv/ con Python 3.12)
+uv venv
+
+# 2. Activarlo
+source .venv/bin/activate          # Linux / macOS
+# .venv\Scripts\activate           # Windows (PowerShell/CMD)
+
+# 3. Instalar las dependencias del proyecto dentro del venv
+uv sync
+
+# 4. Ya con el venv activo, corres los comandos SIN el prefijo `uv run`:
+fastapi dev app/main.py            # levantar la API (recarga automática)
+uvicorn app.main:app --reload      # alternativa
+pytest                             # tests
+ruff check .                       # linter
+
+# 5. Salir del entorno cuando termines
+deactivate
+```
+
+Con el venv activado el ejecutable `python` y todos los comandos (`fastapi`,
+`uvicorn`, `pytest`, `ruff`) resuelven al del `.venv`, así que ya no hace falta
+`uv run` delante.
+
+> **Recomendación:** con uv normalmente puedes saltarte los pasos 1 y 2 y usar
+> directamente `uv run <comando>` (p. ej. `uv run fastapi dev app/main.py`), que
+> crea/usa el `.venv` solo. Activar el entorno es útil sobre todo si tu editor o
+> herramientas esperan un venv activo.
+
 ## Tabla de equivalencias
 
 | Antes (pip)                       | Ahora (uv)                        |

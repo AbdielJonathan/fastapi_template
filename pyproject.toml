@@ -1,5 +1,5 @@
 [project]
-name = "fastapi_template"
+name = "fastapi-template"
 version = "0.1.0"
 description = "Template de API REST con FastAPI (async-first) listo para Cloud Run."
 readme = "README.md"

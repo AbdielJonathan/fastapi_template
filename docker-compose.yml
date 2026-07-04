@@ -19,12 +19,12 @@ services:
 
   app:
     build: .
-    container_name: fastapi_template-app
+    container_name: fastapi-template-app
     depends_on:
       buholegal-db-test:
         condition: service_healthy
     environment:
-      APP_NAME: fastapi_template
+      APP_NAME: fastapi-template
       PORT: 8080
       # Dentro de la red de compose, el host de la DB es el nombre del servicio
       # y el puerto es el interno (3306), no el 3307 mapeado al host.

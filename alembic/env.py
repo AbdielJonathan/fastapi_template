@@ -25,6 +25,21 @@ if config.config_file_name is not None:
 # que Alembic detecta los modelos de app/models.py.
 target_metadata = Base.metadata
 
+#Para excluir las tablas que ya estan en db
+def include_name(name, type_, parent_names):
+    """Filtra qué tablas considera 'autogenerate'.
+
+    La DB (compartida con la app legacy) tiene cientos de tablas que NO son
+    modelos de este proyecto. Sin este filtro, Alembic las ve en la DB pero no
+    en `target_metadata` y propone borrarlas (`drop_table`). Aquí limitamos la
+    comparación a las tablas que sí declaramos como modelos, más la tabla de
+    control de Alembic.
+    """
+    if type_ == "table":
+        return name in target_metadata.tables or name == "alembic_version"
+    # Para columnas, índices, etc.: solo aplica dentro de tablas ya incluidas.
+    return True
+
 
 def get_url() -> str:
     """URL de conexión para las migraciones.
@@ -55,6 +70,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -66,6 +82,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        include_name=include_name,
     )
 
     with context.begin_transaction():

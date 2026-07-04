@@ -9,7 +9,8 @@ Al añadir un modelo nuevo, crea su archivo `app/models/<nombre>.py` y añádelo
 tanto al import como a `__all__` de aquí abajo.
 """
 
+from app.models.mascota import Mascota
 from app.models.superheroes import SuperHeroe
 from app.models.user import User
 
-__all__ = ["SuperHeroe", "User"]
+__all__ = ["Mascota", "SuperHeroe", "User"]

@@ -6,7 +6,7 @@ Se usan tipos de columna portables para que el mismo modelo corra igual en MySQL
 
 from datetime import datetime
 
-from sqlalchemy import CHAR, Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base

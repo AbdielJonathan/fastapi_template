@@ -1,40 +1,29 @@
 """Punto de entrada de la aplicación FastAPI.
 
-Configura el lifespan (crea las tablas al arranque), CORS, los routers y el
-endpoint de health check para Cloud Run.
+Configura el lifespan (ciclo de vida), CORS, los routers y el endpoint de health
+check para Cloud Run.
 """
 
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.settings import settings
-from app.db import Base, engine
+from app.db import engine
 from app.routers import users
 
 # from app.routers import tasks  # noqa: ERA001  (uso futuro, ver más abajo)
 
-logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Crea las tablas al arranque y libera el engine al apagar.
+    """Ciclo de vida de la app: libera el engine al apagar.
 
-    Se importan los modelos aquí para que queden registrados en `Base.metadata`
-    antes de `create_all`.
-
-    TODO: en producción, gestionar el esquema con Alembic (migraciones
-    versionadas) en lugar de `create_all`, que no maneja cambios de esquema.
+    El esquema de la DB lo gestiona **Alembic**, no la app: ejecuta
+    `alembic upgrade head` antes/durante el deploy (ver README). La app ya no
+    crea tablas al arrancar.
     """
-    from app import models  # noqa: F401  registra los modelos en Base.metadata
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Tablas verificadas/creadas al arranque.")
-
     yield
 
     await engine.dispose()

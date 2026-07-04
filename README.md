@@ -29,6 +29,8 @@ app/
     ├── users.py       # CRUD /usuarios
     └── tasks.py       # Placeholder /tareas (uso futuro)
 tests/                 # conftest + unit (store) + integración (API)
+alembic/               # migraciones (env.py async + versions/)
+alembic.ini            # config de Alembic
 ```
 
 Separación estricta: `core/settings.py` = configuración de entorno; `db.py` =
@@ -94,10 +96,47 @@ frente a pip en **[docs/comandos_uv.md](docs/comandos_uv.md)**.
 mysql+asyncmy://USER:PASSWORD@HOST:PORT/NAME
 ```
 
-Al arranque, el `lifespan` crea las tablas con `Base.metadata.create_all`.
+El esquema de la base de datos lo gestiona **exclusivamente Alembic** (ver
+abajo). La app **no** crea tablas al arrancar: antes de levantarla por primera
+vez —o en cada deploy— hay que ejecutar `uv run alembic upgrade head`.
 
-> **TODO (producción):** usar **Alembic** para migraciones versionadas en lugar
-> de `create_all`, que no gestiona cambios de esquema.
+### Migraciones con Alembic
+
+El proyecto trae Alembic configurado en modo **async** (reutiliza el engine
+`asyncmy` y la misma `Base.metadata` de la app). La config está en `alembic.ini`
+y `alembic/env.py`; las migraciones viven en `alembic/versions/`.
+
+Guía completa de comandos, el flujo de `--autogenerate` y buenas prácticas en
+**[docs/alembic.md](docs/alembic.md)**.
+
+```bash
+# Aplicar todas las migraciones (crea/actualiza el esquema)
+uv run alembic upgrade head
+
+# Crear una migración nueva autodetectando cambios en los modelos
+uv run alembic revision --autogenerate -m "descripcion del cambio"
+
+# Revisar estado / historial
+uv run alembic current
+uv run alembic history
+
+# Revertir la última migración
+uv run alembic downgrade -1
+```
+
+**¿Contra qué DB corre?** `env.py` usa por defecto la misma URL que la app
+(desde `settings`). Puedes apuntarla a otra sin tocar el `.env` con la variable
+`DATABASE_URL`, p. ej. contra el MySQL de test en Docker (puerto `3307`):
+
+```bash
+DATABASE_URL="mysql+asyncmy://root:pearsonhardman@127.0.0.1:3307/buholegal" \
+  uv run alembic upgrade head
+```
+
+> **Nota:** la migración inicial (`create users table`) ya está incluida en
+> `alembic/versions/`. Los **tests** son la única excepción: crean el esquema
+> con `Base.metadata.create_all` sobre una DB efímera (SQLite en memoria) para
+> ser rápidos e independientes de las migraciones; no ejecutan Alembic.
 
 ## Tests
 

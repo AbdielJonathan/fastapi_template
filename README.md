@@ -46,16 +46,44 @@ uv sync
 # 2. Configurar entorno
 cp .env.template .env   # edita las credenciales de tu MySQL
 
-# 3. Levantar la API en local
-uv run uvicorn app.main:app --reload
+# 3. Levantar la API en local (dos opciones equivalentes)
+uv run fastapi dev app/main.py       # opción A: FastAPI CLI (recarga automática)
+uv run uvicorn app.main:app --reload # opción B: uvicorn directo
 ```
 
 - API: http://localhost:8000
 - Docs OpenAPI: http://localhost:8000/docs
 - Health check: http://localhost:8000/health
 
-> Nota: `--reload` usa el puerto 8000 de Uvicorn por defecto en local. En
-> contenedor/Cloud Run se escucha en `$PORT` (default 8080).
+> **Sin Docker:** puedes probar la API directamente con `fastapi dev
+> app/main.py` (el comando `fastapi` viene de `fastapi[standard]`, ya incluido
+> en las dependencias). Recarga en caliente al guardar cambios. Ojo con dos
+> cosas: la ruta es `app/main.py` (no `main.py`) y necesitas un **MySQL
+> alcanzable**, porque el `lifespan` crea las tablas al arrancar.
+
+> Nota: tanto `fastapi dev` como `--reload` usan el puerto 8000 por defecto en
+> local. En contenedor/Cloud Run se escucha en `$PORT` (default 8080).
+
+#### ¿Contra qué base de datos?
+
+Si no quieres levantar un MySQL local, apunta la API al **MySQL de test que ya
+corre en Docker** (`docker compose up -d buholegal-db-test`), expuesto en el
+puerto `3307` del host:
+
+```bash
+DB_HOSTNAME=127.0.0.1 DB_PORT=3307 DB_USERNAME=root DB_PASSWORD=pearsonhardman \
+DB_NAME=buholegal uv run fastapi dev app/main.py
+```
+
+O deja esos valores fijos en tu `.env` (recuerda que el puerto mapeado es `3307`,
+no `3306`) y arranca con `uv run fastapi dev app/main.py` a secas.
+
+### Gestionar dependencias (uv)
+
+Este proyecto usa **uv** en vez de `pip`/`requirements.txt`. Para añadir un
+paquete: `uv add <paquete>` (o `uv add --dev <paquete>` para dev); para
+instalar todo desde el lock: `uv sync`. Guía completa con las equivalencias
+frente a pip en **[docs/comandos_uv.md](docs/comandos_uv.md)**.
 
 ### Base de datos
 

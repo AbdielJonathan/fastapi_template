@@ -21,7 +21,7 @@ app/
 ├── main.py            # App FastAPI, lifespan, routers, /health, CORS
 ├── core/settings.py   # Configuración de entorno (pydantic-settings)
 ├── db.py              # SOLO infra de DB: engine async, sesión, Base, get_session
-├── models.py          # Modelos SQLAlchemy (ORM): User
+├── models/            # Modelos SQLAlchemy (ORM), uno por archivo: user.py
 ├── store.py           # Lógica de negocio: CRUD async sobre AsyncSession
 ├── utils.py           # Ejemplo del patrón CPU-bound + run_in_threadpool
 ├── dtos/user.py       # Schemas Pydantic (contratos de la API)
@@ -34,8 +34,8 @@ alembic.ini            # config de Alembic
 ```
 
 Separación estricta: `core/settings.py` = configuración de entorno; `db.py` =
-solo infraestructura de DB; `models.py` = modelos ORM; `dtos/` = schemas
-Pydantic. **Los modelos ORM y los DTOs nunca se mezclan.**
+solo infraestructura de DB; `models/` = modelos ORM (uno por archivo); `dtos/` =
+schemas Pydantic. **Los modelos ORM y los DTOs nunca se mezclan.**
 
 ## Puesta en marcha (local)
 

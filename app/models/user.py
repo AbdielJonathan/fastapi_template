@@ -1,4 +1,4 @@
-"""Modelos SQLAlchemy (ORM).
+"""Modelo ORM de User.
 
 Se usan tipos de columna portables para que el mismo modelo corra igual en MySQL
 (producción) y SQLite (tests).

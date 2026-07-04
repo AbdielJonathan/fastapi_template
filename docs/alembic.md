@@ -16,7 +16,7 @@ API por primera vez —o en cada deploy— hay que aplicar las migraciones.
   provee `env.py`.
 - **`alembic/env.py`**: el "pegamento" con la app. En concreto:
   - `target_metadata = Base.metadata` → Alembic conoce tus modelos
-    (`app/models.py`), necesario para el `--autogenerate`.
+    (paquete `app/models/`), necesario para el `--autogenerate`.
   - La URL de conexión sale de `app.core.settings` (la misma que la app), y se
     puede sobreescribir con la variable de entorno `DATABASE_URL`.
 - **`alembic/versions/`**: aquí viven los archivos de migración. Ya hay uno
@@ -75,7 +75,7 @@ migraciones cuando cambias los modelos.
 # 1. Asegúrate de que la DB está al día ANTES de autogenerar
 uv run alembic upgrade head
 
-# 2. Cambia tus modelos en app/models.py
+# 2. Cambia tus modelos en app/models/ (p. ej. app/models/user.py)
 #    (p. ej. añades una columna `telefono` a User)
 
 # 3. Genera la migración comparando modelos vs DB

@@ -1,0 +1,48 @@
+services:
+  buholegal-db-test:
+    # Fijada a la misma versión que producción.
+    image: mysql:8.0.31
+    container_name: buholegal-db-test
+    environment:
+      MYSQL_ROOT_PASSWORD: pearsonhardman
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./init-sql:/docker-entrypoint-initdb.d:ro
+      - ./my-test.cnf:/etc/mysql/conf.d/my-test.cnf:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-ppearsonhardman"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  app:
+    build: .
+    container_name: fastapi_template-app
+    depends_on:
+      buholegal-db-test:
+        condition: service_healthy
+    environment:
+      APP_NAME: fastapi_template
+      PORT: 8080
+      # Dentro de la red de compose, el host de la DB es el nombre del servicio
+      # y el puerto es el interno (3306), no el 3307 mapeado al host.
+      DB_HOSTNAME: buholegal-db-test
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: pearsonhardman
+      DB_NAME: buholegal
+      CORS_ORIGINS: '["*"]'
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health').status==200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

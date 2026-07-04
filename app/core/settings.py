@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Raíz del repositorio (…/buholegal-practica). `settings.py` vive en app/core/,
+# Raíz del repositorio (…/fastapi_template). `settings.py` vive en app/core/,
 # por eso subimos dos niveles.
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     # App
     PORT: int = 8080
-    APP_NAME: str = "buholegal-practica"
+    APP_NAME: str = "fastapi_template"
 
     # Database (MySQL).
     DB_HOSTNAME: str = "localhost"
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # CORS. Se lee como JSON array desde el entorno, p. ej. CORS_ORIGINS=["*"].
     CORS_ORIGINS: list[str] = ["*"]
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

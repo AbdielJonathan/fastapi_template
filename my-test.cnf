@@ -1,0 +1,23 @@
+[mysqld]
+# Réplica de los "Flags and parameters" de la instancia de producción.
+# Cambios aquí se aplican al reiniciar el contenedor (no requieren borrar
+# el volumen): docker compose restart buholegal-db-test
+
+sql_mode                    = NO_ENGINE_SUBSTITUTION
+default-time-zone           = -06:00
+
+# --- Tamaños / tuning ---
+max_allowed_packet          = 50331648
+table_open_cache            = 4500
+join_buffer_size            = 4096
+
+# --- Timeouts ---
+connect_timeout             = 60
+net_read_timeout            = 60
+
+# --- Binlog---
+binlog_expire_logs_seconds  = 604800
+
+# --- Charset---
+character-set-server        = utf8mb4
+collation-server            = utf8mb4_unicode_ci

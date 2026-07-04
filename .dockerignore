@@ -21,6 +21,10 @@ README.md
 .env.*
 !.env.template
 
-# Docker
+# Docker / compose (no van a la imagen; init-sql pesa cientos de MB)
 Dockerfile
 .dockerignore
+docker-compose.yml
+docker-compose.*.yml
+init-sql
+my-test.cnf

@@ -19,6 +19,10 @@ API por primera vez —o en cada deploy— hay que aplicar las migraciones.
     (paquete `app/models/`), necesario para el `--autogenerate`.
   - La URL de conexión sale de `app.core.settings` (la misma que la app), y se
     puede sobreescribir con la variable de entorno `DATABASE_URL`.
+  - `include_name` → filtro que limita el `--autogenerate` a **las tablas de tus
+    modelos** (+ `alembic_version`). Es imprescindible porque la DB es compartida
+    con la app legacy y tiene cientos de tablas ajenas. Ver
+    [Trabajar con una DB compartida](#trabajar-con-una-db-compartida-el-filtro-include_name).
 - **`alembic/versions/`**: aquí viven los archivos de migración. Ya hay uno
   inicial, `create users table`.
 
@@ -108,11 +112,15 @@ Pero **NO detecta ni acierta** en:
 - **cambios de `server_default`** y algunos defaults, según el caso.
 - **datos**: autogenerate solo toca el esquema. Si necesitas migrar/backfillear
   datos, se escribe a mano en el `upgrade()`.
-- objetos que no están en la metadata (vistas, triggers, tablas de otras
-  bases...). Fíjate: en este proyecto la metadata solo tiene los modelos de la
-  app, así que si autogeneras contra una DB con tablas ajenas, Alembic querrá
-  **borrarlas**. No apliques ciegamente contra una DB con datos que no gestiona
-  la app.
+- objetos que no están en la metadata: **vistas, triggers, procedimientos y
+  functions** son invisibles para autogenerate (nunca los compara ni genera
+  `DROP` sobre ellos). Si los quieres versionar, se hace a mano con
+  `op.execute("CREATE VIEW ...")`.
+- **tablas ajenas** (de la app legacy que comparte la DB): sin protección,
+  Alembic las vería en la DB pero no en la metadata y querría **borrarlas**. Por
+  eso este proyecto usa el filtro `include_name` (ver
+  [abajo](#trabajar-con-una-db-compartida-el-filtro-include_name)). Aun así,
+  **nunca apliques a ciegas**: lee el `upgrade()` generado.
 
 Regla de oro: lee siempre el `upgrade()`/`downgrade()` generado antes de
 aplicarlo y ajusta lo que haga falta.
@@ -144,6 +152,96 @@ DATABASE_URL="mysql+asyncmy://root:pearsonhardman@127.0.0.1:3307/buholegal" \
 DATABASE_URL="sqlite+aiosqlite:///./prueba.db" \
   uv run alembic upgrade head
 ```
+
+## El `__init__.py` de `app/models/` es obligatorio
+
+`app/models/__init__.py` **no es un archivo de relleno**: es el registro central
+de modelos. `env.py` hace `from app import models` para que **todos** los modelos
+queden registrados en `Base.metadata`, y eso solo ocurre si el `__init__.py`
+importa cada uno.
+
+Si borras o dejas incompleto ese `__init__.py`:
+
+- Python trata `app/models` como *namespace package*: el import no falla, pero
+  **no ejecuta nada** que importe tus archivos de modelo.
+- Ningún modelo se registra en `Base.metadata` (queda vacía).
+- Autogenerate no ve ninguna tabla → **genera migraciones vacías** (`pass`).
+
+Por eso, **al añadir un modelo nuevo** hay que registrarlo:
+
+```python
+# app/models/__init__.py
+from app.models.mascota import Mascota
+from app.models.superheroes import SuperHeroe
+from app.models.user import User
+
+__all__ = ["Mascota", "SuperHeroe", "User"]
+```
+
+Regla: un archivo por modelo en `app/models/<nombre>.py`, y añádelo tanto al
+`import` como a `__all__` de `__init__.py`. Si la migración autogenerada sale
+vacía cuando esperabas una tabla nueva, lo primero que debes revisar es esto.
+
+## Trabajar con una DB compartida: el filtro `include_name`
+
+La base de datos de este proyecto es **compartida con la app legacy** y contiene
+cientos de tablas, vistas y triggers que **no** son modelos de esta app. El
+`--autogenerate` compara en ambos sentidos: cualquier tabla que exista en la DB
+pero no en `Base.metadata` la interpreta como "hay que borrarla" y genera un
+`op.drop_table(...)`. Sin protección, una simple migración generaría **miles de
+`drop_table`** sobre datos que no gestiona esta app.
+
+La solución en `env.py` es un filtro que limita la comparación a tus tablas:
+
+```python
+def include_name(name, type_, parent_names):
+    if type_ == "table":
+        return name in target_metadata.tables or name == "alembic_version"
+    return True
+```
+
+Se pasa a `context.configure(..., include_name=include_name)` en los dos modos
+(online y offline).
+
+Puntos clave:
+
+- **Solo aplica a tablas.** `include_name` se llama con `type_` de `"table"`,
+  `"column"`, `"index"`, etc., nunca para vistas/triggers.
+- **Vistas, triggers, procedures y functions ya están a salvo** aunque no exista
+  este filtro: el autogenerate no los refleja ni los compara. El filtro protege
+  únicamente contra el borrado de **tablas** ajenas.
+- **Al añadir un modelo nuevo**, su tabla entra automáticamente en
+  `target_metadata.tables`, así que el filtro la incluye sin tener que tocar
+  nada.
+
+## ¿Puedo editar a mano un archivo de revisión?
+
+Sí, y a veces es necesario (el `# please adjust!` del autogenerate lo invita). La
+clave es **cuándo**:
+
+- **✅ Seguro** si la revisión **aún no se aplicó** a ninguna DB (`alembic
+  current` está por debajo de ella) y **no se ha compartido** en el repo. Puedes
+  editarla libremente antes de correr `upgrade`.
+- **⚠️ No la edites** (o hazlo con mucho cuidado) si **ya se aplicó** en alguna DB
+  (test, staging, prod) o **ya está en el repo** y otros la aplicaron.
+
+Por qué: Alembic solo mira el `version_num` de la tabla `alembic_version`. Una DB
+que ya aplicó una revisión **no la vuelve a ejecutar**, así que tu edición nunca
+corre ahí → esquemas desincronizados entre entornos.
+
+Qué es válido editar (en una revisión no aplicada):
+
+- ajustar tipos que autogenerate detectó mal;
+- añadir lo que autogenerate no cubre: `op.execute("CREATE VIEW ...")`, triggers,
+  migración de datos (`op.execute("UPDATE ...")`), `server_default`, orden de
+  operaciones, `batch_alter_table`…
+
+Qué **no** tocar: `revision` y `down_revision` (forman la cadena; cambiarlos a
+mano rompe el historial o crea múltiples heads).
+
+**Si necesitas cambiar algo ya aplicado o compartido:** no edites la vieja, crea
+una **migración nueva** encima que haga el ajuste. El historial es append-only,
+igual que git.
 
 ## Situaciones frecuentes
 

@@ -1,0 +1,26 @@
+.git
+.gitignore
+.github
+
+# Entornos y caches
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Tests y docs (no van a la imagen de runtime)
+tests
+README.md
+
+# Config local / secretos
+.env
+.envrc
+.env.*
+!.env.template
+
+# Docker
+Dockerfile
+.dockerignore

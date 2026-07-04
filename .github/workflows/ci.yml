@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # --- Integración contra MySQL real (descomentar para probar el motor de
+    # producción). Requiere apuntar TEST_DATABASE_URL al servicio de abajo.
+    # services:
+    #   mysql:
+    #     image: mysql:8.0
+    #     env:
+    #       MYSQL_ROOT_PASSWORD: root
+    #       MYSQL_DATABASE: test
+    #     ports:
+    #       - 3306:3306
+    #     options: >-
+    #       --health-cmd="mysqladmin ping -h localhost"
+    #       --health-interval=10s
+    #       --health-timeout=5s
+    #       --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Run tests
+        # Por defecto corre contra aiosqlite (rápido y siempre verde).
+        run: uv run pytest
+        # Para integración real con MySQL, descomenta el bloque `services` de
+        # arriba y esta variable de entorno:
+        # env:
+        #   TEST_DATABASE_URL: mysql+asyncmy://root:root@127.0.0.1:3306/test
